@@ -6,6 +6,8 @@ from app import db
 
 from ames.ames import AmesPredictor
 from exposure_models.exposure_calculator_worker import calculate_all
+from chembl_api.api_functions import retrieve_mol_data_from_smiles
+from utils.mol_handlers import smiles_from_query_string
 # models not working
 
 
@@ -71,25 +73,29 @@ def logout():
 
 
 # AMES CALCULATOR
+## NOT WORKING
 # smiles sent as query strings
 # http://127.0.0.1:5000/array_test?smiles=CCCC&smiles=CCCCCCC
 # allows multisearchable smiles
 # investigate Flask-WTF for form submission - CSRF attacks
-
+## smiles MUST BE ENTERED WITH %3 instead of = from client side
 
 @app.route("/ames/post_smiles", methods=["POST"])
 def handle_ames():
     if request.method == 'POST':
         try:
             all_smiles = request.args.getlist('smiles')
-            if len(all_smiles) == 1:
-                ames_packet = AmesPredictor(all_smiles[0])
+            print(all_smiles)
+            cleaned_smiles = [smiles_from_query_string(smiles) for smiles in all_smiles]
+            print(cleaned_smiles)
+            if len(cleaned_smiles) == 1:
+                ames_packet = AmesPredictor(cleaned_smiles[0])
                 return jsonify(ames_packet), 200
             else:
-                ames_packet = [AmesPredictor(x) for x in all_smiles]
+                ames_packet = [AmesPredictor(x) for x in cleaned_smiles]
                 return jsonify(ames_packet), 200
-        except:
-            return jsonify({'message': 'Invalid SMILES'}), 400
+        except Exception as e:
+            return jsonify({'message': str(e)}), 400
 
 
 ## Working
@@ -114,6 +120,7 @@ def handle_ames():
 #             "ppe_gloves": "no PPE",
 #             "lev_dermal": "no"
 #             }
+## error message required for unsupported data types
 
 @app.route("/exposure_models/worker/post_chemical", methods=["POST"])
 def handle_worker_exposure_model():
@@ -140,10 +147,28 @@ def handle_worker_exposure_model():
             'ppe_gloves': data.get('ppe_gloves'),
             'lev_dermal': data.get('lev_dermal')
             }
-            exposure_packet = calculate_all(chemical_dict)
-            return jsonify(exposure_packet), 200
+            print(chemical_dict)
+            if any(x == None for x in chemical_dict.values()):
+                return jsonify({'message': 'inputs have not been completed'})
+            else:
+                exposure_packet = calculate_all(chemical_dict), 400
+                return jsonify(exposure_packet), 200
         except Exception as e:
             return jsonify({'message': str(e)}), 500    
 
+
+## WORKING
+
+@app.route('/chembl/similarity', methods=["POST"])
+def handle_smiles_similarity_search():
+    if request.method == 'POST':
+        try:
+            data = request.get_json()
+            smiles = data.get('smiles')
+            parsed = smiles_from_query_string(smiles)
+            ames_packet = retrieve_mol_data_from_smiles(parsed)
+            return jsonify(ames_packet), 200
+        except Exception as e:
+            return jsonify({'message': str(e)}), 400    
 
 ## investigate @login_required decorator for prohibited routes
