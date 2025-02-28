@@ -5,6 +5,7 @@ from app import app
 from app import db
 
 from ames.ames import AmesPredictor
+from exposure_models.exposure_calculator_worker import calculate_all
 # models not working
 
 
@@ -68,6 +69,7 @@ def logout():
     session.pop("username", None)
     return jsonify({'message': 'logout successful'})
 
+
 # AMES CALCULATOR
 # smiles sent as query strings
 # http://127.0.0.1:5000/array_test?smiles=CCCC&smiles=CCCCCCC
@@ -76,7 +78,7 @@ def logout():
 
 
 @app.route("/ames/post_smiles", methods=["POST"])
-def handle_array():
+def handle_ames():
     if request.method == 'POST':
         try:
             all_smiles = request.args.getlist('smiles')
@@ -86,9 +88,62 @@ def handle_array():
             else:
                 ames_packet = [AmesPredictor(x) for x in all_smiles]
                 return jsonify(ames_packet), 200
-        except Exception as e:
+        except:
             return jsonify({'message': 'Invalid SMILES'}), 400
 
+
+## Working
+## FOR POSTMAN:
+# {
+#             "substance_name": "ethanol",
+#             "cas_number": "1111-22-3",
+#             "mol_weight": 46.079,
+#             "long_term_inhalation": 10,
+#             "long_term_dermal": 10,
+#             "short_term_inhalation": 10,
+#             "local_dermal": 10,
+#             "proc": "PROC7",
+#             "ind_prof": "ind",
+#             "phys_state": "liquid",
+#             "fugacity": "very low",
+#             "ventilation": "indoors - no or basic ventilation",
+#             "duration": ">4hr",
+#             "concentration": ">25%",
+#             "lev": "no",
+#             "rpe_mask": "no RPE",
+#             "ppe_gloves": "no PPE",
+#             "lev_dermal": "no"
+#             }
+
+@app.route("/exposure_models/worker/post_chemical", methods=["POST"])
+def handle_worker_exposure_model():
+    if request.method == 'POST':
+        try:
+            data = request.get_json()
+            chemical_dict = {
+            'substance_name': data.get('substance_name'),
+            'cas_number': data.get('cas_number'),
+            'mol_weight': data.get('mol_weight'),
+            'long_term_inhalation': data.get('long_term_inhalation'),
+            'long_term_dermal': data.get('long_term_dermal'),
+            'short_term_inhalation': data.get('short_term_inhalation'),
+            'local_dermal': data.get('local_dermal'),
+            'proc': data.get('proc'),
+            'ind_prof': data.get('ind_prof'),
+            'phys_state': data.get('phys_state'),
+            'fugacity': data.get('fugacity'),
+            'ventilation': data.get('ventilation'),
+            'duration': data.get('duration'),
+            'concentration': data.get('concentration'),
+            'lev': data.get('lev'),
+            'rpe_mask': data.get('rpe_mask'),
+            'ppe_gloves': data.get('ppe_gloves'),
+            'lev_dermal': data.get('lev_dermal')
+            }
+            exposure_packet = calculate_all(chemical_dict)
+            return jsonify(exposure_packet), 200
+        except Exception as e:
+            return jsonify({'message': str(e)}), 500    
 
 
 ## investigate @login_required decorator for prohibited routes
