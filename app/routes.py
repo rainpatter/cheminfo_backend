@@ -73,33 +73,24 @@ def logout():
 
 
 # AMES CALCULATOR
-## NOT WORKING
-# smiles sent as query strings
-# http://127.0.0.1:5000/array_test?smiles=CCCC&smiles=CCCCCCC
-# allows multisearchable smiles
 # investigate Flask-WTF for form submission - CSRF attacks
-## smiles MUST BE ENTERED WITH %3 instead of = from client side
+# smiles MUST BE ENTERED WITH %3 instead of = from client side
 
 @app.route("/ames/post_smiles", methods=["POST"])
 def handle_ames():
     if request.method == 'POST':
         try:
-            all_smiles = request.args.getlist('smiles')
-            print(all_smiles)
-            cleaned_smiles = [smiles_from_query_string(smiles) for smiles in all_smiles]
-            print(cleaned_smiles)
-            if len(cleaned_smiles) == 1:
-                ames_packet = AmesPredictor(cleaned_smiles[0])
-                return jsonify(ames_packet), 200
-            else:
-                ames_packet = [AmesPredictor(x) for x in cleaned_smiles]
-                return jsonify(ames_packet), 200
+            data = request.get_json()
+            smiles = data.get('smiles')
+            cleaned_smiles = smiles_from_query_string(smiles) 
+            ames_packet = AmesPredictor(cleaned_smiles)
+            return jsonify(ames_packet), 200
         except Exception as e:
             return jsonify({'message': str(e)}), 400
 
 
-## Working
-## FOR POSTMAN:
+# Working
+# FOR POSTMAN:
 # {
 #             "substance_name": "ethanol",
 #             "cas_number": "1111-22-3",
@@ -120,7 +111,7 @@ def handle_ames():
 #             "ppe_gloves": "no PPE",
 #             "lev_dermal": "no"
 #             }
-## error message required for unsupported data types
+# error message required for unsupported data types
 
 @app.route("/exposure_models/worker/post_chemical", methods=["POST"])
 def handle_worker_exposure_model():
@@ -128,24 +119,24 @@ def handle_worker_exposure_model():
         try:
             data = request.get_json()
             chemical_dict = {
-            'substance_name': data.get('substance_name'),
-            'cas_number': data.get('cas_number'),
-            'mol_weight': data.get('mol_weight'),
-            'long_term_inhalation': data.get('long_term_inhalation'),
-            'long_term_dermal': data.get('long_term_dermal'),
-            'short_term_inhalation': data.get('short_term_inhalation'),
-            'local_dermal': data.get('local_dermal'),
-            'proc': data.get('proc'),
-            'ind_prof': data.get('ind_prof'),
-            'phys_state': data.get('phys_state'),
-            'fugacity': data.get('fugacity'),
-            'ventilation': data.get('ventilation'),
-            'duration': data.get('duration'),
-            'concentration': data.get('concentration'),
-            'lev': data.get('lev'),
-            'rpe_mask': data.get('rpe_mask'),
-            'ppe_gloves': data.get('ppe_gloves'),
-            'lev_dermal': data.get('lev_dermal')
+                'substance_name': data.get('substance_name'),
+                'cas_number': data.get('cas_number'),
+                'mol_weight': data.get('mol_weight'),
+                'long_term_inhalation': data.get('long_term_inhalation'),
+                'long_term_dermal': data.get('long_term_dermal'),
+                'short_term_inhalation': data.get('short_term_inhalation'),
+                'local_dermal': data.get('local_dermal'),
+                'proc': data.get('proc'),
+                'ind_prof': data.get('ind_prof'),
+                'phys_state': data.get('phys_state'),
+                'fugacity': data.get('fugacity'),
+                'ventilation': data.get('ventilation'),
+                'duration': data.get('duration'),
+                'concentration': data.get('concentration'),
+                'lev': data.get('lev'),
+                'rpe_mask': data.get('rpe_mask'),
+                'ppe_gloves': data.get('ppe_gloves'),
+                'lev_dermal': data.get('lev_dermal')
             }
             print(chemical_dict)
             if any(x == None for x in chemical_dict.values()):
@@ -154,10 +145,10 @@ def handle_worker_exposure_model():
                 exposure_packet = calculate_all(chemical_dict), 400
                 return jsonify(exposure_packet), 200
         except Exception as e:
-            return jsonify({'message': str(e)}), 500    
+            return jsonify({'message': str(e)}), 500
 
 
-## WORKING
+# WORKING
 
 @app.route('/chembl/similarity', methods=["POST"])
 def handle_smiles_similarity_search():
@@ -169,6 +160,6 @@ def handle_smiles_similarity_search():
             ames_packet = retrieve_mol_data_from_smiles(parsed)
             return jsonify(ames_packet), 200
         except Exception as e:
-            return jsonify({'message': str(e)}), 400    
+            return jsonify({'message': str(e)}), 400
 
-## investigate @login_required decorator for prohibited routes
+# investigate @login_required decorator for prohibited routes
