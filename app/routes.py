@@ -1,6 +1,5 @@
 from flask import jsonify, request, session
-from flask_login import current_user, login_user
-import sqlalchemy as sa
+from flask_login import login_user
 from app import app
 from app import db
 
@@ -8,7 +7,6 @@ from ames.ames import AmesPredictor
 from exposure_models.exposure_calculator_worker import calculate_all
 from chembl_api.api_functions import retrieve_mol_data_from_smiles
 from utils.mol_handlers import smiles_from_query_string
-# models not working
 
 
 @app.route('/')
@@ -66,6 +64,9 @@ def register():
         return jsonify({'message': str(e)}), 500
 
 
+## LOGOUT
+# working on session data
+
 @app.route('/logout')
 def logout():
     session.pop("username", None)
@@ -82,15 +83,16 @@ def handle_ames():
         try:
             data = request.get_json()
             smiles = data.get('smiles')
-            cleaned_smiles = smiles_from_query_string(smiles) 
+            cleaned_smiles = smiles_from_query_string(smiles)
             ames_packet = AmesPredictor(cleaned_smiles)
             return jsonify(ames_packet), 200
         except Exception as e:
             return jsonify({'message': str(e)}), 400
 
 
+# WORKER EXPOSURE MODEL
 # Working
-# FOR POSTMAN:
+# For route testing, use the following JSON object:
 # {
 #             "substance_name": "ethanol",
 #             "cas_number": "1111-22-3",
@@ -112,6 +114,7 @@ def handle_ames():
 #             "lev_dermal": "no"
 #             }
 # error message required for unsupported data types
+
 
 @app.route("/exposure_models/worker/post_chemical", methods=["POST"])
 def handle_worker_exposure_model():
@@ -148,6 +151,7 @@ def handle_worker_exposure_model():
             return jsonify({'message': str(e)}), 500
 
 
+# SIMILARITY SEARCH
 # WORKING
 
 @app.route('/chembl/similarity', methods=["POST"])
